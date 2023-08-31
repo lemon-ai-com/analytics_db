@@ -297,5 +297,63 @@ class AppsflyerRawDataConnector:
 
         df = db_client.query_dataframe(query, where_args)
         return df.set_index("install_hour")["number_of_events"]
+    
+    @add_db_client
+    def get_number_of_installs_by_install_date(self, db_client: Client) -> pd.DataFrame:
+        query = f"""
+            SELECT count(1) as count, toDate(install_time) as install_date 
+            FROM {self.table_name}
+            WHERE app_id = %(application_id)s
+            GROUP BY install_date
+            """
+        
+        df = db_client.query_dataframe(query, {'application_id': self.application_id})
+        return df
+    
+    @add_db_client
+    def get_avg_number_of_events_per_day(self, db_client: Client) -> pd.DataFrame:
+        query = f"""
+            SELECT count(1) / uniq(toDate(event_time)) as result
+            FROM {self.table_name}
+            WHERE app_id = %(application_id)s
+            """
+        
+        df = db_client.query_dataframe(query, {'application_id': self.application_id})
+        return df['result'][0]
+
+
+    @add_db_client
+    def get_number_of_events_in_date_range(
+        self, start_date: datetime, end_date: datetime, db_client: Client
+    ) -> int:
+        query = f"""
+            SELECT count(1) as count
+            FROM {self.table_name}
+            WHERE app_id = %(application_id)s
+                AND toDate(install_time) >= toDate(%(start_date)s)
+                AND toDate(install_time) <= toDate(%(end_date)s)
+        """
+
+        df = db_client.query_dataframe(
+            query, {'application_id': self.application_id, 'start_date': start_date, 'end_date': end_date}
+        )
+        return df['count'][0]
+
+
+    @add_db_client
+    def save_loaded_data(self, df: pd.DataFrame, db_client: Client):
+        columns = ', '.join(df.columns)
+
+        query = f"""INSERT INTO {self.table_name} ({columns}) VALUES"""
+        
+        db_client.insert_dataframe(query, df)
+
+    @add_db_client
+    def count_records_in_table(self, db_client: Client):
+        query = f"""SELECT count(1) as count FROM {self.table_name}"""
+
+        df = db_client.query_dataframe(query)
+        return df['count'][0]
+
 
 
