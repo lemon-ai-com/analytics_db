@@ -69,15 +69,47 @@ class PreparedDataConnector:
         return uservectors, eventvectors
     
     @add_db_client
-    def get_avg_number_of_events_per_user(self, db_client: Client = None) -> float:
+    def get_number_of_users(self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> float:
+        where_parts = []
+        where_args = {}
+
+        if start_dt:
+            where_parts.append(f"install_time >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append(f"install_time <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
         query = f"""
-        SELECT count(1) / uniq(user_mmp_id) as result
+        SELECT uniq(user_mmp_id) as result
         FROM {self.table_path_prefix}_eventvectors
+        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
         return db_client.query_dataframe(query).iloc[0, 0]
     
     @add_db_client
-    def get_avg_number_of_installs_per_date(
+    def get_number_of_events(self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> float:
+        where_parts = []
+        where_args = {}
+
+        if start_dt:
+            where_parts.append(f"install_time >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append(f"install_time <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
+        query = f"""
+        SELECT count(1) as result
+        FROM {self.table_path_prefix}_eventvectors
+        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        """
+        return db_client.query_dataframe(query).iloc[0, 0]
+    
+    @add_db_client
+    def get_number_of_install_dates(
         self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
     ) -> float:
         where_parts = []
@@ -92,10 +124,38 @@ class PreparedDataConnector:
             where_args["end_date"] = end_dt
 
         query = f"""
-        SELECT uniq(user_mmp_id) / uniq(toDate(install_time)) as result
+        SELECT uniq(toDate(install_time)) as result
         FROM {self.table_path_prefix}_uservectors
         {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
 
-        return db_client.query_dataframe(query, where_args)["result"]
+        return db_client.query_dataframe(query, where_args).iloc[0, 0]
+    
+    @add_db_client
+    def get_earliest_install_date_with_no_prediction_for_model_id(
+        self, model_id: uuid.UUID, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
+    ) -> datetime:
+        where_parts = []
+        where_args = {}
+
+        if start_dt:
+            where_parts.append(f"install_time >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append(f"install_time <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
+        query = f"""
+        SELECT min(install_time) as result
+        FROM {self.table_path_prefix}_uservectors
+        WHERE user_mmp_id NOT IN (
+            SELECT user_mmp_id
+            FROM predict.{model_id}_predict
+            {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        )
+        {('AND' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        """
+
+        return db_client.query_dataframe(query, where_args).iloc[0, 0]
     
