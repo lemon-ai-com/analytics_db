@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 from analytics_db import __version__
 
@@ -10,6 +10,6 @@ setup(
     author='Lemon AI',
     author_email='dev@lemon-ai.com',
 
-    py_modules=['analytics_db'],
+    packages=find_packages(exclude=['tests', 'tests.*']),
     install_requires=['pandas==2.0.3', 'clickhouse-driver[lz4]==0.2.6']
 )
