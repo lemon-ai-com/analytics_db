@@ -3,7 +3,6 @@ from .adjust import AdjustRawDataConnector
 from .appsflyer import AppsflyerRawDataConnector
 from .predict import PredictDataConnector
 
-__version__ = '0.1.0'
 
 RawDataConnectorType = AppsflyerRawDataConnector | AdjustRawDataConnector
 

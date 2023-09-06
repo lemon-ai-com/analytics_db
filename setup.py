@@ -1,10 +1,9 @@
 from setuptools import setup
 
-from analytics_db import __version__
 
 setup(
     name='analytics_db',
-    version=__version__,
+    version='0.1.0',
 
     url='https://github.com/lemon-ai-com/analytics_db',
     author='Lemon AI',
