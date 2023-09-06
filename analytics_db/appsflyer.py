@@ -10,8 +10,39 @@ class AppsflyerRawDataConnector:
         self.table_name = "appsflyer_raw_data"
 
     @add_db_client
+    def are_records_present_for_application_id(
+        self, 
+        application_id: str, 
+        start_dt: datetime = None, 
+        end_dt: datetime = None, 
+        db_client: Client = None
+    ) -> bool:
+        where_parts = [
+            f"app_id = %(application_id)s",
+        ]
+        where_args = {"application_id": application_id}
+
+        if start_dt:
+            where_parts.append(f"event_time >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append(f"event_time <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
+        query = f"""
+        SELECT count(1) as count
+        FROM {self.table_name}
+        WHERE {' AND '.join(where_parts)}
+        """
+
+        df = db_client.query_dataframe(query, where_args)
+        return df['count'][0] > 0
+    
+    @add_db_client
     def get_number_of_installs(self, application_id: str, db_client: Client = None) -> int:
-        query = f"""SELECT uniq(appsflyer_id) as uniq FROM {self.table_name} 
+        query = f"""SELECT uniq(appsflyer_id) as uniq 
+        FROM {self.table_name} 
         WHERE app_id = %(application_id)s"""
 
         df = db_client.query_dataframe(query, {"application_id": application_id})
@@ -176,65 +207,6 @@ class AppsflyerRawDataConnector:
         return df
     
     @add_db_client
-    def insert_prepared_data(self, pipeline_id: str, uservectors: pd.DataFrame, eventvectors: pd.DataFrame, db_client: Client = None):
-        uservectors_feature_names = [f'`{x}`' for x in uservectors.columns if x != 'user_mmp_id']
-        uservectors_table_name = f"{pipeline_id}_uservectors"
-        create_table_query = f"""CREATE TABLE IF NOT EXISTS {uservectors_table_name} (
-            user_mmp_id String,
-            install_time DateTime,
-            {', '.join(uservectors_feature_names)}
-        ) ENGINE = ReplacingMergeTree()
-        ORDER BY user_mmp_id
-        """
-        db_client.execute(create_table_query)
-
-        eventvectors_feature_names = [f'`{x}`' for x in eventvectors.columns if x not in ('user_mmp_id', 'event_number', 'install_time')]
-        eventvectors_table_name = f"{pipeline_id}_eventvectors"
-        create_table_query = f"""CREATE TABLE IF NOT EXISTS {eventvectors_table_name} (
-            user_mmp_id String,
-            event_number Int64,
-            install_time DateTime,
-            {', '.join(eventvectors_feature_names)}
-        ) ENGINE = ReplacingMergeTree()
-        ORDER BY user_mmp_id, event_number
-        """
-        db_client.execute(create_table_query)
-
-        db_client.insert_dataframe(f"""INSERT INTO {uservectors_table_name} VALUES""", uservectors)
-        db_client.insert_dataframe(f"""INSERT INTO {eventvectors_table_name} VALUES""", eventvectors)
-    
-    @add_db_client
-    def get_prepated_data(self, pipeline_id: str, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> tuple[pd.DataFrame, pd.DataFrame]:
-        where_parts = []
-        where_args = {}
-
-        if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
-            where_args["start_date"] = start_dt
-
-        if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
-            where_args["end_date"] = end_dt
-
-        query = f"""
-        SELECT *
-        FROM {pipeline_id}_uservectors
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
-        """
-
-        uservectors = db_client.query_dataframe(query, where_args)
-
-        query = f"""
-        SELECT *
-        FROM {pipeline_id}_eventvectors
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
-        """
-
-        eventvectors = db_client.query_dataframe(query, where_args)
-
-        return uservectors, eventvectors
-
-    @add_db_client
     def get_number_of_installs_per_date(
         self, application_id: str, start_dt: datetime = None, end_dt: datetime = None, 
         censoring_period_seconds: int = None, db_client: Client = None
@@ -300,30 +272,6 @@ class AppsflyerRawDataConnector:
         SELECT date_trunc('hour', install_time) as install_hour, count(1) as number_of_events
         FROM {self.table_name}
         WHERE {' AND '.join(where_parts)}
-        GROUP BY install_hour
-        """
-
-        df = db_client.query_dataframe(query, where_args)
-        return df.set_index("install_hour")["number_of_events"]
-    
-    @add_db_client
-    def get_number_of_events_per_install_hour_in_prepared_data(
-        self, pipeline_id: uuid.UUID, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
-    ):
-        where_parts, where_args = [], {}
-
-        if start_dt:
-            where_parts.append(f"install_date >= %(start_date)s")
-            where_args["start_date"] = start_dt
-
-        if end_dt:
-            where_parts.append(f"install_date <= %(end_date)s")
-            where_args["end_date"] = end_dt
-
-        query = f"""
-        SELECT date_trunc('hour', install_time) as install_hour, count(1) as number_of_events
-        FROM {pipeline_id}_eventvectors
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         GROUP BY install_hour
         """
 

@@ -109,6 +109,30 @@ class PreparedDataConnector:
         return db_client.query_dataframe(query).iloc[0, 0]
     
     @add_db_client
+    def get_number_of_events_per_install_hour_in_prepared_data(
+        self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
+    ):
+        where_parts, where_args = [], {}
+
+        if start_dt:
+            where_parts.append(f"install_date >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append(f"install_date <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
+        query = f"""
+        SELECT date_trunc('hour', install_time) as install_hour, count(1) as number_of_events
+        FROM {self.pipeline_id}_eventvectors
+        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        GROUP BY install_hour
+        """
+
+        df = db_client.query_dataframe(query, where_args)
+        return df.set_index("install_hour")["number_of_events"]
+    
+    @add_db_client
     def get_number_of_install_dates(
         self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
     ) -> float:
