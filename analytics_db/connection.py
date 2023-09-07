@@ -18,5 +18,4 @@ def add_db_client(func):
 
                 kwargs['db_client'] = client
                 return func(*args, **kwargs)
-        return result
     return wrapper
