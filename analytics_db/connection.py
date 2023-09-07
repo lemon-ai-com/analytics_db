@@ -15,7 +15,9 @@ def add_db_client(func):
                 port=DB_PORT,
                 database=DB_NAME,
                 compression=True,
+                secure=True if DB_PORT == 9440 else False,
                 settings={"use_numpy": True},
+                connect_timeout=60*5,
             ) as client:
                 kwargs["db_client"] = client
                 return func(*args, **kwargs)
