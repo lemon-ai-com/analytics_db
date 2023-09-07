@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import uuid
 
 import pandas as pd
 
@@ -267,7 +268,7 @@ class AppsflyerRawDataConnector:
         return df.set_index("install_hour")["number_of_events"]
 
     @add_db_client
-    def get_number_of_installs_by_install_date(self, db_client: Client) -> pd.DataFrame:
+    def get_number_of_installs_by_install_date(self, application_id: str, db_client: Client) -> pd.DataFrame:
         query = f"""
             SELECT count(1) as count, toDate(install_time) as install_date
             FROM {self.table_name}
@@ -275,23 +276,23 @@ class AppsflyerRawDataConnector:
             GROUP BY install_date
             """
 
-        df = db_client.query_dataframe(query, {"application_id": self.application_id})
+        df = db_client.query_dataframe(query, {"application_id": application_id})
         return df
 
     @add_db_client
-    def get_avg_number_of_events_per_day(self, db_client: Client) -> pd.DataFrame:
+    def get_avg_number_of_events_per_day(self, application_id: str, db_client: Client) -> pd.DataFrame:
         query = f"""
             SELECT count(1) / uniq(toDate(event_time)) as result
             FROM {self.table_name}
             WHERE app_id = %(application_id)s
             """
 
-        df = db_client.query_dataframe(query, {"application_id": self.application_id})
+        df = db_client.query_dataframe(query, {"application_id": application_id})
         return df["result"][0]
 
     @add_db_client
     def get_number_of_events_in_date_range(
-        self, start_date: datetime, end_date: datetime, db_client: Client
+        self, application_id: str, start_date: datetime, end_date: datetime, db_client: Client
     ) -> int:
         query = f"""
             SELECT count(1) as count
@@ -304,7 +305,7 @@ class AppsflyerRawDataConnector:
         df = db_client.query_dataframe(
             query,
             {
-                "application_id": self.application_id,
+                "application_id": application_id,
                 "start_date": start_date,
                 "end_date": end_date,
             },
