@@ -1,7 +1,9 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
+
 import pandas as pd
-from .connection import add_db_client, Client
+
+from .connection import Client, add_db_client
 
 
 class PreparedDataConnector:
@@ -10,8 +12,15 @@ class PreparedDataConnector:
         self.table_path_prefix = f"prepared.{self.pipeline_id}"
 
     @add_db_client
-    def insert_prepared_data(self, uservectors: pd.DataFrame, eventvectors: pd.DataFrame, db_client: Client = None):
-        uservectors_feature_names = [f'`{x}`' for x in uservectors.columns if x != 'user_mmp_id']
+    def insert_prepared_data(
+        self,
+        uservectors: pd.DataFrame,
+        eventvectors: pd.DataFrame,
+        db_client: Client = None,
+    ):
+        uservectors_feature_names = [
+            f"`{x}`" for x in uservectors.columns if x != "user_mmp_id"
+        ]
         uservectors_table_name = f"{self.table_path_prefix}_uservectors"
         create_table_query = f"""CREATE TABLE IF NOT EXISTS {uservectors_table_name} (
             user_mmp_id String,
@@ -22,7 +31,11 @@ class PreparedDataConnector:
         """
         db_client.execute(create_table_query)
 
-        eventvectors_feature_names = [f'`{x}`' for x in eventvectors.columns if x not in ('user_mmp_id', 'event_number', 'install_time')]
+        eventvectors_feature_names = [
+            f"`{x}`"
+            for x in eventvectors.columns
+            if x not in ("user_mmp_id", "event_number", "install_time")
+        ]
         eventvectors_table_name = f"{self.table_path_prefix}_eventvectors"
         create_table_query = f"""CREATE TABLE IF NOT EXISTS {eventvectors_table_name} (
             user_mmp_id String,
@@ -34,20 +47,29 @@ class PreparedDataConnector:
         """
         db_client.execute(create_table_query)
 
-        db_client.insert_dataframe(f"""INSERT INTO {uservectors_table_name} VALUES""", uservectors)
-        db_client.insert_dataframe(f"""INSERT INTO {eventvectors_table_name} VALUES""", eventvectors)
-    
+        db_client.insert_dataframe(
+            f"""INSERT INTO {uservectors_table_name} VALUES""", uservectors
+        )
+        db_client.insert_dataframe(
+            f"""INSERT INTO {eventvectors_table_name} VALUES""", eventvectors
+        )
+
     @add_db_client
-    def get_prepated_data(self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def get_prepated_data(
+        self,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         where_parts = []
         where_args = {}
 
         if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -67,18 +89,23 @@ class PreparedDataConnector:
         eventvectors = db_client.query_dataframe(query, where_args)
 
         return uservectors, eventvectors
-    
+
     @add_db_client
-    def get_number_of_users(self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> float:
+    def get_number_of_users(
+        self,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
+    ) -> float:
         where_parts = []
         where_args = {}
 
         if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -87,18 +114,23 @@ class PreparedDataConnector:
         {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
         return db_client.query_dataframe(query).iloc[0, 0]
-    
+
     @add_db_client
-    def get_number_of_events(self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None) -> float:
+    def get_number_of_events(
+        self,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
+    ) -> float:
         where_parts = []
         where_args = {}
 
         if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -107,19 +139,22 @@ class PreparedDataConnector:
         {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
         return db_client.query_dataframe(query).iloc[0, 0]
-    
+
     @add_db_client
     def get_number_of_events_per_install_hour_in_prepared_data(
-        self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
+        self,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
     ):
         where_parts, where_args = [], {}
 
         if start_dt:
-            where_parts.append(f"install_date >= %(start_date)s")
+            where_parts.append("install_date >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_date <= %(end_date)s")
+            where_parts.append("install_date <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -131,20 +166,23 @@ class PreparedDataConnector:
 
         df = db_client.query_dataframe(query, where_args)
         return df.set_index("install_hour")["number_of_events"]
-    
+
     @add_db_client
     def get_number_of_install_dates(
-        self, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
+        self,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
     ) -> float:
         where_parts = []
         where_args = {}
 
         if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -154,20 +192,24 @@ class PreparedDataConnector:
         """
 
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
-    
+
     @add_db_client
     def get_earliest_install_date_with_no_prediction_for_model_id(
-        self, model_id: uuid.UUID, start_dt: datetime = None, end_dt: datetime = None, db_client: Client = None
+        self,
+        model_id: uuid.UUID,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
     ) -> datetime:
         where_parts = []
         where_args = {}
 
         if start_dt:
-            where_parts.append(f"install_time >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append(f"install_time <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
@@ -182,4 +224,3 @@ class PreparedDataConnector:
         """
 
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
-    
