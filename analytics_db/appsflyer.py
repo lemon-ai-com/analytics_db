@@ -1,5 +1,6 @@
 from datetime import date, datetime
-import uuid
+import logging
+from clickhouse_driver.errors import ServerException
 
 import pandas as pd
 
@@ -313,12 +314,27 @@ class AppsflyerRawDataConnector:
         return df["count"][0]
 
     @add_db_client
-    def save_loaded_data(self, df: pd.DataFrame, db_client: Client):
+    def save_loaded_data(self, df: pd.DataFrame, db_client: Client, cb_on_failure=None):
         columns = ", ".join(df.columns)
 
         query = f"""INSERT INTO {self.table_name} ({columns}) VALUES"""
 
-        db_client.insert_dataframe(query, df)
+        try:
+            db_client.insert_dataframe(query, df)
+        except ServerException as e:
+            err_str = str(e)
+            if "Code: 241" in err_str:
+                logging.error(f"Got Clickhouse memory limit exceeded error: {err_str}, will split insert")
+                logging.exception(e)
+            self.save_loaded_data(df.iloc[: len(df) // 2], db_client, cb_on_failure)
+            self.save_loaded_data(df.iloc[len(df) // 2 :], db_client, cb_on_failure)
+        except Exception as e:
+            logging.error(f"Unknown error while saving data to Clickhouse: {e}")
+            logging.exception(e)
+
+            if callable(cb_on_failure):
+                cb_on_failure(df)
+
 
     @add_db_client
     def count_records_in_table(self, db_client: Client):
