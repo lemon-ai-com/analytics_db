@@ -281,11 +281,26 @@ class AppsflyerRawDataConnector:
         return df
 
     @add_db_client
-    def get_avg_number_of_events_per_day(self, application_id: str, db_client: Client) -> pd.DataFrame:
+    def get_avg_number_of_events_per_day(self, application_id: str, db_client: Client) -> float:
         query = f"""
             SELECT count(1) / uniq(toDate(event_time)) as result
             FROM {self.table_name}
             WHERE app_id = %(application_id)s
+            """
+
+        df = db_client.query_dataframe(query, {"application_id": application_id})
+        return df["result"][0]
+    
+    @add_db_client
+    def get_max_number_of_events_per_day(self, application_id: str, db_client: Client) -> float:
+        query = f"""
+            SELECT max(day_count) as result
+            FROM (
+                SELECT toDate(event_time) as event_date, count(1) as day_count
+                FROM {self.table_name}
+                WHERE app_id = %(application_id)s
+                GROUP BY event_date
+            )
             """
 
         df = db_client.query_dataframe(query, {"application_id": application_id})
