@@ -269,7 +269,7 @@ class AppsflyerRawDataConnector:
         return df.set_index("install_hour")["number_of_events"]
 
     @add_db_client
-    def get_number_of_installs_by_install_date(self, application_id: str, db_client: Client) -> pd.DataFrame:
+    def get_number_of_installs_by_install_date(self, application_id: str, db_client: Client=None) -> pd.DataFrame:
         query = f"""
             SELECT count(1) as count, toDate(install_time) as install_date
             FROM {self.table_name}
@@ -292,7 +292,7 @@ class AppsflyerRawDataConnector:
         return df["result"][0]
     
     @add_db_client
-    def get_max_number_of_events_per_day(self, application_id: str, db_client: Client) -> float:
+    def get_max_number_of_events_per_day(self, application_id: str, db_client: Client=None) -> float:
         query = f"""
             SELECT max(day_count) as result
             FROM (
@@ -308,7 +308,7 @@ class AppsflyerRawDataConnector:
 
     @add_db_client
     def get_number_of_events_in_date_range(
-        self, application_id: str, start_date: datetime, end_date: datetime, db_client: Client
+        self, application_id: str, start_date: datetime, end_date: datetime, db_client: Client=None
     ) -> int:
         query = f"""
             SELECT count(1) as count
@@ -329,7 +329,7 @@ class AppsflyerRawDataConnector:
         return df["count"][0]
 
     @add_db_client
-    def save_loaded_data(self, df: pd.DataFrame, db_client: Client, cb_on_failure=None):
+    def save_loaded_data(self, df: pd.DataFrame, db_client: Client=None, cb_on_failure=None):
         columns = ", ".join(df.columns)
 
         query = f"""INSERT INTO {self.table_name} ({columns}) VALUES"""
@@ -339,10 +339,10 @@ class AppsflyerRawDataConnector:
         except ServerException as e:
             err_str = str(e)
             if "Code: 241" in err_str:
-                logging.error(f"Got Clickhouse memory limit exceeded error: {err_str}, will split insert")
+                logging.error(f"Got Clickhouse memory limit exceeded error for df.shape={df.shape}: {err_str}, will split insert")
                 logging.exception(e)
-            self.save_loaded_data(df.iloc[: len(df) // 2], db_client, cb_on_failure)
-            self.save_loaded_data(df.iloc[len(df) // 2 :], db_client, cb_on_failure)
+            self.save_loaded_data(df.iloc[: len(df) // 2], db_client=db_client, cb_on_failure=cb_on_failure)
+            self.save_loaded_data(df.iloc[len(df) // 2 :], db_client=db_client, cb_on_failure=cb_on_failure)
         except Exception as e:
             logging.error(f"Unknown error while saving data to Clickhouse: {e}")
             logging.exception(e)
@@ -352,7 +352,7 @@ class AppsflyerRawDataConnector:
 
 
     @add_db_client
-    def count_records_in_table(self, db_client: Client):
+    def count_records_in_table(self, db_client: Client=None):
         query = f"""SELECT count(1) as count FROM {self.table_name}"""
 
         df = db_client.query_dataframe(query)
