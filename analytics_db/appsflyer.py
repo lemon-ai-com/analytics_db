@@ -123,7 +123,7 @@ class AppsflyerRawDataConnector:
         db_client: Client = None,
     ) -> pd.DataFrame:
         where_parts = [
-            "application_id = %(application_id)s",
+            "app_id = %(application_id)s",
             "install_time >= %(install_dt_from)s",
             "install_time <= %(install_dt_to)s",
         ]
@@ -158,7 +158,7 @@ class AppsflyerRawDataConnector:
         db_client: Client = None,
     ) -> pd.DataFrame:
         where_parts = [
-            "application_id = %(application_id)s",
+            "app_id = %(application_id)s",
         ]
         where_args = {"application_id": application_id}
 
