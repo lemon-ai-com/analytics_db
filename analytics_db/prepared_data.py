@@ -9,13 +9,13 @@ from .connection import Client, add_db_client
 class PreparedDataConnector:
     def __init__(self, pipeline_id: str):
         self.pipeline_id = pipeline_id
-        self.table_path_prefix = f"prepared.{self.pipeline_id}"
+        self.table_path_prefix = f"prepared_data.{self.pipeline_id}"
 
     @add_db_client
     def init_db(self, db_client: Client = None):
         db_client.execute(
             f"""
-            CREATE DATABASE IF NOT EXISTS prepared
+            CREATE DATABASE IF NOT EXISTS prepared_data
             """
         )
 
