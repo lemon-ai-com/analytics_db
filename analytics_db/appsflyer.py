@@ -9,7 +9,11 @@ from .connection import Client, add_db_client
 
 class AppsflyerRawDataConnector:
     def __init__(self) -> None:
-        self.table_name = "appsflyer_raw_data"
+        self.table_name = "raw_data.appsflyer_raw_data"
+
+    def init_db(self, db_client: Client = None):
+        query = """CREATE DATABASE IF NOT EXISTS raw_data"""
+        db_client.execute(query)
 
     @add_db_client
     def are_records_present_for_application_id(

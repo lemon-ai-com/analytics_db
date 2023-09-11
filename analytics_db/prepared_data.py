@@ -12,6 +12,14 @@ class PreparedDataConnector:
         self.table_path_prefix = f"prepared.{self.pipeline_id}"
 
     @add_db_client
+    def init_db(self, db_client: Client = None):
+        db_client.execute(
+            f"""
+            CREATE DATABASE IF NOT EXISTS prepared
+            """
+        )
+
+    @add_db_client
     def insert_prepared_data(
         self,
         uservectors: pd.DataFrame,
