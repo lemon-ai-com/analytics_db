@@ -84,7 +84,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT *
         FROM {self.table_uservectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
 
         uservectors = db_client.query_dataframe(query, where_args)
@@ -92,7 +92,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT *
         FROM {self.table_eventvectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
 
         eventvectors = db_client.query_dataframe(query, where_args)
@@ -120,7 +120,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT uniq(user_mmp_id) as result
         FROM {self.table_eventvectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
         return db_client.query_dataframe(query).iloc[0, 0]
 
@@ -145,7 +145,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT count(1) as result
         FROM {self.table_eventvectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
         return db_client.query_dataframe(query).iloc[0, 0]
 
@@ -169,7 +169,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT date_trunc('hour', install_time) as install_hour, count(1) as number_of_events
         FROM {self.table_eventvectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         GROUP BY install_hour
         """
 
@@ -197,7 +197,7 @@ class PreparedDataConnector:
         query = f"""
         SELECT uniq(toDate(install_time)) as result
         FROM {self.table_uservectors}
-        {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
 
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
@@ -227,7 +227,7 @@ class PreparedDataConnector:
         WHERE user_mmp_id NOT IN (
             SELECT user_mmp_id
             FROM predict.{model_id}_predict
-            {('WHERE' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+            {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         )
         {('AND' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
