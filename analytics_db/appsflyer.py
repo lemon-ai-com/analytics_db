@@ -396,7 +396,7 @@ class AppsflyerRawDataConnector:
 
         if target_type == 'ltv':
             query = f"""
-            SELECT appsflyer_id as user_mmp_id, sum(event_revenue) as target
+            SELECT appsflyer_id as user_mmp_id, sum(toFloat64OrZero(event_revenue)) as target
             FROM {self.table_name}
             WHERE {' AND '.join(where_parts)} AND event_name IN %(convertion_event_names)s
             GROUP BY user_mmp_id"""
