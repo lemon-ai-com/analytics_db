@@ -26,21 +26,21 @@ class PreparedDataConnector:
         eventvectors: pd.DataFrame,
         db_client: Client = None,
     ):
-        uservectors_feature_names = [
-            f"`{x}`" for x in uservectors.columns if x != "user_mmp_id"
+        uservectors_create_columns = [
+            f"`{x}` Nullable(Float64)" for x in uservectors.columns if x not in ("user_mmp_id", "install_time")
         ]
         uservectors_table_name = f"{self.table_path_prefix}_uservectors"
         create_table_query = f"""CREATE TABLE IF NOT EXISTS {uservectors_table_name} (
             user_mmp_id String,
             install_time DateTime,
-            {', '.join(uservectors_feature_names)}
+            {', '.join(uservectors_create_columns)}
         ) ENGINE = ReplacingMergeTree()
         ORDER BY user_mmp_id
         """
         db_client.execute(create_table_query)
 
-        eventvectors_feature_names = [
-            f"`{x}`"
+        eventvectors_create_columns = [
+            f"`{x}` Nullable(Float64)"
             for x in eventvectors.columns
             if x not in ("user_mmp_id", "event_number", "install_time")
         ]
@@ -49,7 +49,7 @@ class PreparedDataConnector:
             user_mmp_id String,
             event_number Int64,
             install_time DateTime,
-            {', '.join(eventvectors_feature_names)}
+            {', '.join(eventvectors_create_columns)}
         ) ENGINE = ReplacingMergeTree()
         ORDER BY user_mmp_id, event_number
         """
