@@ -11,5 +11,5 @@ class PredictDataConnector:
     @add_db_client
     def save_predicts(self, predicts: pd.DataFrame, db_client: Client = None):
         db_client.insert_dataframe(
-            f"""INSERT INTO {self.table_path} (user_mmp_id, predict) VALUES""", predicts
+            f"""INSERT INTO {self.table_path} (user_id, predict_value) VALUES""", predicts
         )
