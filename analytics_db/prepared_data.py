@@ -54,11 +54,13 @@ class PreparedDataConnector:
         """
         db_client.execute(create_table_query)
 
+        uservectors_columns = ', '.join([f'`{x}`' for x in uservectors.columns])
         db_client.insert_dataframe(
-            f"""INSERT INTO {self.table_uservectors} VALUES""", uservectors
+            f"""INSERT INTO {self.table_uservectors} ({uservectors_columns}) VALUES""", uservectors
         )
+        eventvectors_columns = ', '.join([f'`{x}`' for x in eventvectors.columns])
         db_client.insert_dataframe(
-            f"""INSERT INTO {self.table_eventvectors} VALUES""", eventvectors
+            f"""INSERT INTO {self.table_eventvectors} ({eventvectors_columns}) VALUES""", eventvectors
         )
 
     @add_db_client
