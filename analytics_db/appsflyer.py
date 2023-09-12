@@ -1,5 +1,6 @@
 from datetime import date, datetime
 import logging
+import typing
 from clickhouse_driver.errors import ServerException
 
 import pandas as pd
@@ -361,3 +362,61 @@ class AppsflyerRawDataConnector:
 
         df = db_client.query_dataframe(query)
         return df["count"][0]
+    
+    @add_db_client
+    def calculate_target_for_app_users(
+        self,
+        application_id: str,
+        target_type: typing.Literal['ltv', 'number_of_conversions', 'lt'],
+        target_calculation_period_in_seconds: int,
+        convertion_event_names: list[str] = None,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None
+        ) -> pd.Series:
+        if target_type in ('ltv', 'number_of_conversions') and not convertion_event_names:
+            raise ValueError(f'convertion_event_names must be provided for target_type={target_type}')
+        
+        where_parts = [
+            "app_id = %(application_id)s",
+            "date_diff('second', install_time, event_time) <= %(target_calculation_period_in_seconds)s"
+        ]
+        where_args = {
+            "application_id": application_id, 
+            "target_calculation_period_in_seconds": target_calculation_period_in_seconds
+        }
+
+        if start_dt:
+            where_parts.append("install_time >= %(start_dt)s")
+            where_args["start_dt"] = start_dt
+
+        if end_dt:
+            where_parts.append("install_time <= %(end_dt)s")
+            where_args["end_dt"] = end_dt
+
+        if target_type == 'ltv':
+            query = f"""
+            SELECT appsflyer_id as user_mmp_id, sum(event_revenue) as target
+            FROM {self.table_name}
+            WHERE {' AND '.join(where_parts)} AND event_name IN %(convertion_event_names)s
+            GROUP BY user_mmp_id"""
+            where_args['convertion_event_names'] = convertion_event_names
+        elif target_type == 'number_of_conversions':
+            query = f"""
+            SELECT appsflyer_id as user_mmp_id, count(1) as target
+            FROM {self.table_name}
+            WHERE {' AND '.join(where_parts)} AND event_name IN %(convertion_event_names)s
+            GROUP BY user_mmp_id"""
+            where_args['convertion_event_names'] = convertion_event_names
+        elif target_type == 'lt':
+            query = f"""
+            SELECT appsflyer_id as user_mmp_id, max(date_diff('second', install_time, event_time)) as target
+            FROM {self.table_name}
+            WHERE {' AND '.join(where_parts)}
+            GROUP BY user_mmp_id"""
+        else:
+            raise ValueError(f'Invalid target_type={target_type}')
+        
+        df = db_client.query_dataframe(query, where_args)
+        return df.set_index('user_mmp_id')['target']
+
