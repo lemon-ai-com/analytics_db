@@ -122,7 +122,7 @@ class PreparedDataConnector:
         FROM {self.table_eventvectors}
         {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
-        return db_client.query_dataframe(query).iloc[0, 0]
+        return db_client.query_dataframe(query, where_args).iloc[0, 0]
 
     @add_db_client
     def get_number_of_events(
@@ -147,7 +147,7 @@ class PreparedDataConnector:
         FROM {self.table_eventvectors}
         {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
-        return db_client.query_dataframe(query).iloc[0, 0]
+        return db_client.query_dataframe(query, where_args).iloc[0, 0]
 
     @add_db_client
     def get_number_of_events_per_install_hour_in_prepared_data(
