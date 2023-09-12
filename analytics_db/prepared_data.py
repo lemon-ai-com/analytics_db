@@ -50,7 +50,7 @@ class PreparedDataConnector:
             install_time DateTime,
             {', '.join(eventvectors_create_columns)}
         ) ENGINE = ReplacingMergeTree()
-        ORDER BY user_mmp_id, event_number
+        ORDER BY (user_mmp_id, event_number)
         """
         db_client.execute(create_table_query)
 
