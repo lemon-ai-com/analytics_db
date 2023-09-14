@@ -7,5 +7,5 @@ setup(
     author="Lemon AI",
     author_email="dev@lemon-ai.com",
     packages=find_packages(exclude=["tests", "tests.*"]),
-    install_requires=["pandas==2.0.3", "clickhouse-driver[lz4]==0.2.6"],
+    install_requires=["pandas==2.0.3", "clickhouse-driver[lz4,zstd]==0.2.6"],
 )

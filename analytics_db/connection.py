@@ -14,7 +14,7 @@ def add_db_client(func):
                 host=DB_HOST,
                 port=DB_PORT,
                 database=DB_NAME,
-                compression=True,
+                compression='zstd',
                 secure=True if DB_PORT == 9440 else False,
                 settings={"use_numpy": True},
                 connect_timeout=60*5,
