@@ -1,9 +1,12 @@
+import logging
 import uuid
 from datetime import datetime
 
 import pandas as pd
 
 from .connection import Client, add_db_client
+from clickhouse_driver.errors import ServerException
+
 
 
 class PreparedDataConnector:
@@ -19,6 +22,23 @@ class PreparedDataConnector:
             CREATE DATABASE IF NOT EXISTS prepared_data
             """
         )
+
+    def _insert_df_in_chunks_if_needed(self, query: str, df: pd.DataFrame, client: Client, chunk_size: int=None):
+        if not chunk_size:
+            chunk_size = len(df)
+
+        for i in range(0, len(df), chunk_size):
+            try:
+                client.insert_dataframe(query, df.iloc[i : min(i + chunk_size, len(df))])
+            except ServerException as e:
+                err_str = str(e)
+                if "Code: 241" in err_str:
+                    logging.error(f"Got Clickhouse memory limit exceeded error for df.shape={df.shape}: {err_str}, will split insert")
+                    logging.exception(e)
+                self._insert_df_in_chunks_if_needed(query, df.iloc[i:], client, chunk_size=chunk_size // 2)
+            except Exception as e:
+                logging.error(f"Unknown error while saving data to Clickhouse: {e}")
+                logging.exception(e)
 
     @add_db_client
     def insert_prepared_data(
@@ -55,13 +75,12 @@ class PreparedDataConnector:
         db_client.execute(create_table_query)
 
         uservectors_columns = ', '.join([f'`{x}`' for x in uservectors.columns])
-        db_client.insert_dataframe(
-            f"""INSERT INTO {self.table_uservectors} ({uservectors_columns}) VALUES""", uservectors
-        )
+        uservectors_insert_query = f"""INSERT INTO {self.table_uservectors} ({uservectors_columns}) VALUES"""
+        self._insert_df_in_chunks_if_needed(uservectors_insert_query, uservectors, db_client)
+
         eventvectors_columns = ', '.join([f'`{x}`' for x in eventvectors.columns])
-        db_client.insert_dataframe(
-            f"""INSERT INTO {self.table_eventvectors} ({eventvectors_columns}) VALUES""", eventvectors
-        )
+        eventvectors_insert_query = f"""INSERT INTO {self.table_eventvectors} ({eventvectors_columns}) VALUES"""
+        self._insert_df_in_chunks_if_needed(eventvectors_insert_query, eventvectors, db_client)
 
     @add_db_client
     def get_prepated_data(
