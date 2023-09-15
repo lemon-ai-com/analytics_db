@@ -6,7 +6,7 @@ from .connection import Client, add_db_client
 class PredictDataConnector:
     def __init__(self, model_id: str):
         self.model_id = model_id
-        self.table_path = f"predicts.{self.model_id}_predict"
+        self.table_path = f"predict.{self.model_id}_predict"
 
     @add_db_client
     def save_predicts(self, predicts: pd.DataFrame, db_client: Client = None):
