@@ -53,6 +53,7 @@ class PreparedDataConnector:
         create_table_query = f"""CREATE TABLE IF NOT EXISTS {self.table_uservectors} (
             user_mmp_id String,
             install_time DateTime,
+            created_at DateTime default now(),
             {', '.join(uservectors_create_columns)}
         ) ENGINE = ReplacingMergeTree()
         ORDER BY user_mmp_id
@@ -68,6 +69,7 @@ class PreparedDataConnector:
             user_mmp_id String,
             event_number Int64,
             install_time DateTime,
+            created_at DateTime default now(),
             {', '.join(eventvectors_create_columns)}
         ) ENGINE = ReplacingMergeTree()
         ORDER BY (user_mmp_id, event_number)
@@ -244,9 +246,13 @@ class PreparedDataConnector:
         SELECT min(install_time) as result
         FROM {self.table_uservectors}
         WHERE user_mmp_id NOT IN (
-            SELECT user_mmp_id
-            FROM predict.{model_id}_predict
-            {('WHERE ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+            SELECT DISTINCT user_mmp_id
+            FROM predict.event_predict
+            WHERE created_at > %(start_date)s
+            UNION ALL
+            SELECT DISTINCT user_mmp_id
+            FROM predict.metric_predict
+            WHERE created_at > %(start_date)s
         )
         {('AND' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
