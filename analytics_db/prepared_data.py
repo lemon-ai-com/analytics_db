@@ -224,9 +224,10 @@ class PreparedDataConnector:
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
 
     @add_db_client
-    def get_earliest_install_date_with_no_prediction_for_model_id(
+    def get_earliest_install_date_with_no_prediction(
         self,
-        model_id: uuid.UUID,
+        event_id: uuid.UUID | None,
+        metric_id: uuid.UUID | None,
         start_dt: datetime = None,
         end_dt: datetime = None,
         db_client: Client = None,
@@ -242,17 +243,20 @@ class PreparedDataConnector:
             where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
+        where_args["event_id"] = str(event_id)
+        where_args["metric_id"] = str(metric_id)
+
         query = f"""
         SELECT min(install_time) as result
         FROM {self.table_uservectors}
         WHERE user_mmp_id NOT IN (
             SELECT DISTINCT user_mmp_id
             FROM predict.event_predict
-            WHERE created_at > %(start_date)s
+            WHERE created_at > %(start_date)s AND event_id = %(event_id)s
             UNION ALL
             SELECT DISTINCT user_mmp_id
             FROM predict.metric_predict
-            WHERE created_at > %(start_date)s
+            WHERE created_at > %(start_date)s AND metric_id = %(metric_id)s
         )
         {('AND' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
