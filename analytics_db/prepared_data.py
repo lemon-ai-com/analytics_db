@@ -262,3 +262,11 @@ class PreparedDataConnector:
         """
 
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
+    
+    @add_db_client
+    def get_max_install_time(self, db_client: Client = None) -> datetime:
+        query = f"""
+        SELECT max(install_time) as result
+        FROM {self.table_uservectors}
+        """
+        return db_client.query_dataframe(query).iloc[0, 0]
