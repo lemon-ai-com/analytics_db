@@ -81,7 +81,7 @@ class AppsflyerRawDataConnector:
         query = f"""
         SELECT toDate(event_time) as event_date, count(1) as number_of_events
         FROM {self.table_name}
-        WHERE {' AND '.join(where_parts)}
+        WHERE {' AND '.join(where_parts)} AND event_time is not null
         GROUP BY event_date
         """
 
@@ -235,7 +235,7 @@ class AppsflyerRawDataConnector:
 
         SELECT toDate(install_time) as install_date, uniq(appsflyer_id) as number_of_installs
         FROM {self.table_name}
-        WHERE {' AND '.join(where_parts)}
+        WHERE {' AND '.join(where_parts)} AND install_time is not null
         GROUP BY install_date
         """
 
@@ -266,7 +266,7 @@ class AppsflyerRawDataConnector:
         query = f"""
         SELECT date_trunc('hour', install_time) as install_hour, count(1) as number_of_events
         FROM {self.table_name}
-        WHERE {' AND '.join(where_parts)}
+        WHERE {' AND '.join(where_parts)} AND install_time is not null
         GROUP BY install_hour
         """
 
@@ -278,7 +278,7 @@ class AppsflyerRawDataConnector:
         query = f"""
             SELECT count(1) as count, toDate(install_time) as install_date
             FROM {self.table_name}
-            WHERE app_id = %(application_id)s
+            WHERE app_id = %(application_id)s AND install_time is not null
             GROUP BY install_date
             """
 
@@ -303,7 +303,7 @@ class AppsflyerRawDataConnector:
             FROM (
                 SELECT toDate(event_time) as event_date, count(1) as day_count
                 FROM {self.table_name}
-                WHERE app_id = %(application_id)s
+                WHERE app_id = %(application_id)s AND event_time is not null
                 GROUP BY event_date
             )
             """
