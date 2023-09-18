@@ -21,5 +21,5 @@ def get_prepared_data_db_connector(pipeline_id: str) -> PreparedDataConnector:
     return PreparedDataConnector(pipeline_id=pipeline_id)
 
 
-def get_predict_db_connector(model_id: str) -> PredictDataConnector:
-    return PredictDataConnector(model_id=model_id)
+def get_predict_db_connector(is_event_predict=False, is_metric_predict=False) -> PredictDataConnector:
+    return PredictDataConnector(is_event_predict, is_metric_predict)
