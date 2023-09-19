@@ -258,7 +258,7 @@ class PreparedDataConnector:
             FROM predict.metric_predict
             WHERE created_at > %(start_date)s AND metric_id = %(metric_id)s
         )
-        {('AND' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
+        {('AND ' + ' AND '.join(where_parts)) if len(where_parts) > 0 else ''}
         """
 
         return db_client.query_dataframe(query, where_args).iloc[0, 0]
