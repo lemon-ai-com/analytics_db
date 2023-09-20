@@ -180,11 +180,11 @@ class PreparedDataConnector:
         where_parts, where_args = [], {}
 
         if start_dt:
-            where_parts.append("install_date >= %(start_date)s")
+            where_parts.append("install_time >= %(start_date)s")
             where_args["start_date"] = start_dt
 
         if end_dt:
-            where_parts.append("install_date <= %(end_date)s")
+            where_parts.append("install_time <= %(end_date)s")
             where_args["end_date"] = end_dt
 
         query = f"""
