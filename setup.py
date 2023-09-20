@@ -9,6 +9,6 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=["clickhouse-driver[lz4,zstd]==0.2.6"],
     extras_require = {
-        'pandas':  ["pandas==2.0.3"]
+        "pandas":  ["pandas==2.0.3"]
     }
 )
