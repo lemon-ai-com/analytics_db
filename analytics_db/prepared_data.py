@@ -35,6 +35,9 @@ class PreparedDataConnector:
                 if "Code: 241" in err_str:
                     logging.error(f"Got Clickhouse memory limit exceeded error for chunk_size={chunk_size}, df.shape={df.shape}: {err_str}, will split insert")
                     logging.exception(e)
+                else:
+                    logging.error(f"Unknown error while saving data to Clickhouse, will try in smaller chunks: {e}")
+                    logging.exception(e)
                 self._insert_df_in_chunks_if_needed(query, df.iloc[i:], client, chunk_size=chunk_size // 2)
             except Exception as e:
                 logging.error(f"Unknown error while saving data to Clickhouse: {e}")
