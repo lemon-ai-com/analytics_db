@@ -39,9 +39,6 @@ class PreparedDataConnector:
                     logging.error(f"Unknown error while saving data to Clickhouse, will try in smaller chunks: {e}")
                     logging.exception(e)
                 self._insert_df_in_chunks_if_needed(query, df.iloc[i:], client, chunk_size=chunk_size // 2)
-            except Exception as e:
-                logging.error(f"Unknown error while saving data to Clickhouse: {e}")
-                logging.exception(e)
 
     @add_db_client
     def insert_prepared_data(

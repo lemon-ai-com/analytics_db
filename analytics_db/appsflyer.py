@@ -354,6 +354,8 @@ class AppsflyerRawDataConnector:
 
             if callable(cb_on_failure):
                 cb_on_failure(df)
+            else:
+                raise e
 
 
     @add_db_client
