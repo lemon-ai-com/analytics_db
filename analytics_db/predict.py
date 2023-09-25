@@ -4,7 +4,6 @@ import uuid
 import pandas as pd
 
 from .connection import Client, add_db_client
-from . import RawDataConnectorType
 
 class PredictDataConnector:
     def __init__(self, is_event_predict: bool = False, is_metric_predict: bool = False, is_sent_event: bool = False):
@@ -38,7 +37,7 @@ class PredictDataConnector:
         end_date: date, 
         target_value_from: float,
         target_value_to: float,
-        raw_data_db_connector: RawDataConnectorType,
+        raw_data_db_connector,
         db_client: Client = None
     ) -> pd.DataFrame:
         
