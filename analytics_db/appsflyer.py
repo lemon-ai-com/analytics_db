@@ -365,8 +365,7 @@ class AppsflyerRawDataConnector:
         df = db_client.query_dataframe(query)
         return df["count"][0]
     
-    @add_db_client
-    def calculate_target_for_app_users(
+    def create_query_to_calculate_target(
         self,
         application_id: str,
         target_type: typing.Literal['ltv', 'number_of_conversions', 'lt'],
@@ -374,8 +373,7 @@ class AppsflyerRawDataConnector:
         convertion_event_names: list[str] = None,
         start_dt: datetime = None,
         end_dt: datetime = None,
-        db_client: Client = None
-        ) -> pd.Series:
+    ) -> tuple[str, dict]:
         if target_type in ('ltv', 'number_of_conversions') and not convertion_event_names:
             raise ValueError(f'convertion_event_names must be provided for target_type={target_type}')
         
@@ -418,6 +416,29 @@ class AppsflyerRawDataConnector:
             GROUP BY user_mmp_id"""
         else:
             raise ValueError(f'Invalid target_type={target_type}')
+        
+        return query, where_args
+    
+    @add_db_client
+    def calculate_target_for_app_users(
+        self,
+        application_id: str,
+        target_type: typing.Literal['ltv', 'number_of_conversions', 'lt'],
+        target_calculation_period_in_seconds: int,
+        convertion_event_names: list[str] = None,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None
+    ) -> pd.Series:
+        
+        query, where_args = self.create_query_to_calculate_target(
+            application_id,
+            target_type,
+            target_calculation_period_in_seconds,
+            convertion_event_names,
+            start_dt,
+            end_dt
+        )
         
         df = db_client.query_dataframe(query, where_args)
         return df.set_index('user_mmp_id')['target']
