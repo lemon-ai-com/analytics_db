@@ -1,5 +1,4 @@
-from datetime import date
-import datetime
+from datetime import date, datetime
 import uuid
 import pandas as pd
 
