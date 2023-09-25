@@ -70,22 +70,23 @@ class PredictDataConnector:
             target AS (
                 SELECT
                     toDate(install_time) AS install_date,
-                    count(1) as number_of_target_users
+                    count(1) as total_users,
+                    sum(and({', '.join(target_calc_where_parts) if len(target_calc_where_parts) > 0 else '1'})) as number_of_target_users
                 FROM ({target_calc_query})
-                {('WHERE ' + ' AND '.join(target_calc_where_parts)) if len(target_calc_where_parts) > 0 else ''}
                 GROUP BY install_date
                 ),
             sent AS (
                 SELECT 
                     toDate(install_time) AS install_date,
-                    count(1) AS number_of_events
+                    count(1) AS number_of_events,
+                    uniq(user_mmp_id) AS number_of_predict_users
                 FROM {self.table_path}
                 WHERE event_id = %(event_id)s
                 AND install_time >= %(start_date)s
                 AND install_time <= %(end_date)s
                 GROUP BY install_date
             )
-        SELECT target.install_date, number_of_target_users, number_of_events
+        SELECT target.install_date as install_date, total_users, number_of_target_users, number_of_events, number_of_predict_users
         FROM target LEFT JOIN sent USING (install_date)
         ORDER BY install_date
         """
