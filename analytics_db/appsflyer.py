@@ -356,7 +356,44 @@ class AppsflyerRawDataConnector:
                 cb_on_failure(df)
             else:
                 raise e
+            
+    @add_db_client
+    def get_avg_lifetime_in_seconds_for_max_lifetime(
+        self,
+        application_id: str,
+        max_lifetime_seconds: int,
+        start_dt: datetime = None,
+        end_dt: datetime = None,
+        db_client: Client = None,
+    ) -> float:
+        where_parts = [
+            "app_id = %(application_id)s",
+            "date_diff('second', install_time, event_time) <= %(max_lifetime_seconds)s",
+        ]
+        where_args = {
+            "application_id": application_id,
+            "max_lifetime_seconds": max_lifetime_seconds,
+        }
 
+        if start_dt:
+            where_parts.append("install_time >= %(start_date)s")
+            where_args["start_date"] = start_dt
+
+        if end_dt:
+            where_parts.append("install_time <= %(end_date)s")
+            where_args["end_date"] = end_dt
+
+        query = f"""
+            select avg(c) from (
+                select appsflyer_id, max(date_diff('second', install_time, event_time)) as c
+                from {self.table_name}
+                where {' AND '.join(where_parts)}
+                group by appsflyer_id
+            );
+        """
+
+        df = db_client.query_dataframe(query, where_args)
+        return df.iloc[0, 0]
 
     @add_db_client
     def count_records_in_table(self, db_client: Client=None):
