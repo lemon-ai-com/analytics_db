@@ -386,7 +386,7 @@ class AppsflyerRawDataConnector:
         query = f"""
             select avg(c) from (
                 select appsflyer_id, max(date_diff('second', install_time, event_time)) as c
-                from raw_data.appsflyer_raw_data
+                from {self.table_name}
                 where {' AND '.join(where_parts)}
                 group by appsflyer_id
             );
