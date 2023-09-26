@@ -399,16 +399,18 @@ class AppsflyerRawDataConnector:
 
         if target_type == 'ltv':
             query = f"""
-            SELECT appsflyer_id as user_mmp_id, {fields_to_take_first_str} sum(toFloat64OrZero(event_revenue)) as target
+            SELECT appsflyer_id as user_mmp_id, {fields_to_take_first_str}
+                sum(if(event_name IN %(convertion_event_names)s, toFloat64OrZero(event_revenue), 0)) as target
             FROM {self.table_name}
-            WHERE {' AND '.join(where_parts)} AND event_name IN %(convertion_event_names)s
+            WHERE {' AND '.join(where_parts)}
             GROUP BY user_mmp_id"""
             where_args['convertion_event_names'] = convertion_event_names
         elif target_type == 'number_of_conversions':
             query = f"""
-            SELECT appsflyer_id as user_mmp_id, {fields_to_take_first_str} count(1) as target
+            SELECT appsflyer_id as user_mmp_id, {fields_to_take_first_str}
+                sum(event_name IN %(convertion_event_names)s) as target
             FROM {self.table_name}
-            WHERE {' AND '.join(where_parts)} AND event_name IN %(convertion_event_names)s
+            WHERE {' AND '.join(where_parts)}
             GROUP BY user_mmp_id"""
             where_args['convertion_event_names'] = convertion_event_names
         elif target_type == 'lt':
